@@ -63,8 +63,8 @@ function hideMarkers(markers) {
         markers[i].setMap(null);
     }
 }
-
-mapInitReady = true;
+// This will break everything
+// mapInitReady = true;
 
 function initMap() {
     console.log('mapping...')
