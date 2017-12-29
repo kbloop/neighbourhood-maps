@@ -1,0 +1,247 @@
+/*
+FCFAFA - snow = header bg
+C8D3D5 - lite grey = inactive icon
+A4B8C4 - wild blue = list bg
+6E8387 - metal = hamburger icon
+0CCA4A - accent = highlighter / active / focus
+*/
+/* MOBILE FIRST STYLES */
+input {
+    background: #FCFAFA;
+    border: none;
+    width: 55%;
+    font-size: 37.5px;
+    font-weight: 100;
+    margin-left: 0px;
+}
+input.filter-input {
+    border-top: 1px solid #fff;
+    height: 40px;
+    margin-left: 0px;
+    width: 100%;
+    font-size: 1.25em;
+    padding: 5px 2px 5px 20px;
+}
+
+aside {
+    background: #A4B8C4;
+    height: 100%;
+    transition: all .2s;
+    position: fixed;
+    width: 60%;
+    z-index: 1;
+}
+
+li {
+    border: 1px solid #FCFAFA;
+    font-family: roboto, sans-serif;
+    font-size: 24px;
+    text-align: center;
+    padding: 4%;
+    width: 100%;
+}
+
+/* Medium devices  768px and up*/
+@media (min-width: 768px) {
+    body,ul{padding:0px;margin:0px}
+    *{
+        box-sizing: border-box;
+    }
+    header {
+        background: #FCFAFA;
+        height: 250px;
+    }
+
+    nav {
+        height: 100%;
+    }
+
+    button {
+        background: #FCFAFA;
+        border: none;
+        color: #6E8387;
+        font-size: 55px;
+        font-weight: 100;
+        height: 100%;
+        width: 20%;
+    }
+
+    button:focus, input:focus {
+        outline: none;
+        color: #0CCA4A;
+    }
+
+    button#search-btn {
+        float: right;
+    }
+
+    input {
+        background: #FCFAFA;
+        border: none;
+        font-size: 55px;
+        font-weight: 100;
+    }
+
+    /* Content */
+
+    #map {
+        float: right;
+        height: 100%;
+        transition: all .2s;
+        width: 100%;
+    }
+
+    aside {
+        background: #A4B8C4;
+        height: 100%;
+        /* overflow-y: scroll; */
+        position: fixed;
+        transition: all .2s;
+        width: 90%;
+        z-index: 1;
+    }
+
+    ul {
+        overflow-y: scroll;
+    }
+
+    li {
+        font-family: roboto, sans-serif;
+        font-size: 14px;
+        text-align: center;
+        padding: 2%;
+        width: 100%;
+        color: #C8D3D5;
+    }
+
+    li:hover {
+        /* background: #C8D3D5; */
+        color: #FCFAFA;
+        border: none;
+        border-left: 5px solid #0CCA4A;
+    }
+
+    /* Footer */
+
+    footer {
+        background: #6E8387;
+        color: #FCFAFA;
+        height: 100px;
+    }
+    /* Utilities */
+
+    .hidden-left {
+        transform: translate(-100%,0);
+    }
+
+    .active {
+        color: #0CCA4A;
+    }
+
+    .map-move-right {
+        float: right;
+        width: 10%!important;
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    body,ul{padding:0px;margin:0px}
+    *{
+        box-sizing: border-box;
+    }
+    header {
+        background: #FCFAFA;
+        height: 100px;
+    }
+
+    nav {
+        height: 100%;
+    }
+
+    button {
+        background: #FCFAFA;
+        border: none;
+        color: #6E8387;
+        font-size: 37.5px;
+        font-weight: 100;
+        height: 100%;
+        width: 20%;
+    }
+
+    button:focus, input:focus {
+        outline: none;
+        color: #0CCA4A;
+    }
+
+    button#search-btn {
+        float: right;
+    }
+
+    input {
+        background: #FCFAFA;
+        border: none;
+        font-size: 37.5px;
+        font-weight: 100;
+        margin-left: 2%;
+    }
+
+    /* Content */
+
+    #map {
+        float: right;
+        height: 100%;
+        transition: all .2s;
+        width: 100%;
+    }
+
+    aside {
+        background: #A4B8C4;
+        height: 100%;
+        position: fixed;
+        overflow-y: scroll;
+        transition: all .2s;
+        width: 20%;
+        z-index: 1;
+    }
+
+    li {
+        border: 0px;
+        font-family: roboto, sans-serif;
+        font-size: 14px;
+        text-align: left;
+        padding-left: 8%;
+        width: 100%;
+    }
+
+    li:hover {
+        background: #6E8387;
+        border-left: 5px solid #0CCA4A;
+        color: white;
+        cursor: pointer;
+        transform: scale(1.1);
+        transition: all .1s ease-in;
+    }
+
+    /* Footer */
+
+    footer {
+        background: #6E8387;
+        color: #FCFAFA;
+        height: 100px;
+    }
+    /* Utilities */
+
+    .hidden-left {
+        transform: translate(-100%,0);
+    }
+
+    .active {
+        color: #0CCA4A;
+    }
+
+    .map-move-right {
+        float: right;
+        width: 80%!important;
+    }
+}
