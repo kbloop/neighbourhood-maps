@@ -80,7 +80,7 @@ function initMap() {
     defaultIcon = makeMarkerIcon('0091ff');
     // Create a "highlighted location" marker color for when the user
     // mouses over the marker.
-    highlightedIcon = makeMarkerIcon('FFFF24');
+    // highlightedIcon = makeMarkerIcon('FFFF24');
 
     // Create one instance of an infowindow to only allow one open on screen at a time.
     largeInfoWindow = new google.maps.InfoWindow();
@@ -108,9 +108,10 @@ function ViewModel() {
     self.filteredMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
     self.placesNearby = ko.observableArray([]);
-
     self.locationsDisplayed = ko.computed(function () {
-        ajaxRequest(self.placesNearby());
+        // This does not belong here, this is the computed list displayed when filtering places.
+        var foursquareData = ajaxRequest(self.placesNearby());
+
         var filter = self.filter().toLowerCase();
         if (!filter) {
             return self.placesNearby();
@@ -170,12 +171,12 @@ function ViewModel() {
                             // Set the bounds of the map to the location also.
                             var bounds = new google.maps.LatLngBounds();
                             bounds.extend(loc);
-                            map.setCenter(loc);
-                            map.fitBounds(bounds);
+                            self.googlemap.setCenter(loc);
+                            self.googlemap.fitBounds(bounds);
 
                             // Add a marker at the location
                             var marker = new google.maps.Marker({
-                                map: self.map,
+                                map: self.googlemap,
                                 position: loc,
                                 icon: defaultIcon,
                             });
@@ -197,14 +198,19 @@ function ViewModel() {
     }
 
     function getNearbyPlaces() {
-        self.placesNearby([]);
+        // Empty the array of previous data.
+        // self.placesNearby([]);
+
+        var placesNearbyHolder = [];
+        var markersHolder = [];
+
         service.nearbySearch({
             location: self.currentLocation,
             radius: 500,
         }, function (results, status) {
             if (status === "OK") {
                 for (var i = 0; i < results.length; i++) {
-                    self.placesNearby.push(results[i]);
+                    placesNearbyHolder.push(results[i]);
                     var location = results[i].geometry.location;
                     var name = results[i].geometry.name;
                     // Check if the results returns photos, and if so set the photoUrl = url, else set it to nothing.
@@ -219,25 +225,26 @@ function ViewModel() {
                     var infoWindow = new google.maps.InfoWindow();
 
                     // Add a marker click event that will open a info window
-                    // marker.addListener('click', function (result) {
-                    //     return function () {
+                    marker.addListener('click', function (result) {
+                        return function () {
 
-                    //         var url = typeof result.photos !== "undefined" ? result.photos[0].getUrl({
-                    //             'maxWidth': 300,
-                    //             'maxHeight': 400
-                    //         }) : '';
-                    //         largeInfoWindow.setOptions({
-                    //             position: result.geometry.location,
-                    //             map: self.map,
-                    //             content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p></div>"
-                    //         });
-                    //         largeInfoWindow.open(map, self.markers()[i]);
-                    //     };
-                    // }(results[i]));
-                    self.markers.push(marker);
-                    self.placesNearby()[i].marker = marker;
-
+                            var url = typeof result.photos !== "undefined" ? result.photos[0].getUrl({
+                                'maxWidth': 300,
+                                'maxHeight': 400
+                            }) : '';
+                            largeInfoWindow.setOptions({
+                                position: result.geometry.location,
+                                map: self.map,
+                                content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p></div>"
+                            });
+                            largeInfoWindow.open(map, self.markers()[i]);
+                        };
+                    }(results[i]));
+                    markersHolder.push(marker);
+                    placesNearbyHolder[i].marker = marker;
                 }
+                self.markers(markersHolder);
+                self.placesNearby(placesNearbyHolder);
                 self.addListListeners();
                 showMarkers(self.markers(), self.googlemap);
             } else {
@@ -315,7 +322,8 @@ function hideMarkers(markers) {
 function createMarker(place, apiData) {
     var marker = place.marker;
     if(apiData.response !== undefined ) {
-        console.log(apiData.response !== undefined);
+        console.log(isEmpty(apiData.response));
+
 
         // Add a marker click event that will open a info window
         marker.addListener('click', function (result) {
@@ -362,10 +370,10 @@ function showMarkers(markers, map) {
     }
     map.fitBounds(bounds)
 }
-
+var ip = 0;
 function ajaxRequest(placesArray) {
-
-    console.log("ajax...")
+    ip++;
+    console.log('ajax...'+ip)
 
     for (var i = 0; i < placesArray.length; i++) {
         var place = placesArray[i];
@@ -385,10 +393,51 @@ function ajaxRequest(placesArray) {
             type: 'GET',
             //which function to call when all is succeseed
             success: function (data, status) {
-                createMarker(place, data.response);
+                // createMarker(place, data);
+                if(isEmpty(data.response)){
+                    console.log('ajax data is empty');
+                    return null;
+                }
+                return data;
             }
         });
     }
 }
+function isEmpty(obj) {
+    for(var prop in obj) {
+        if(obj.hasOwnProperty(prop)){
+            return false;
+        }
+    }
+    return JSON.stringify(obj) === JSON.stringify({});
+}
 
 // WHEN THE PLACE IS CLICKED FIND THE API INFO ABOUT THE PLACE
+
+
+// HOW THE APP RUNS ATM, aka completely fooked.
+
+/*
+When doc is ready
+    - Slide the drawer out.
+    - Set the app ui based on screen size (appContainer, map, aside, footer & header).
+    - Add an event listener to the header for toggling aside drawer.
+    - Loop continuosly WHILE waiting for the googlemaps api to respond.
+        > If there is no response / poor internet connection can cause unbreakable loop. TODO BUG.
+        > If there is a response we initialize the map.
+
+When map is initialized
+    - Create a new instance of a map at #map (accessing the document again) TODO.
+    - Create default icon and highlighted icon. Highlighted icon is not used TODO.
+    - Create infowindow and init placesService.
+    - Check if the drawer is toggled and
+        >if it isn't toggle it and set a var called drawerToggled to true. Useless var TODO.
+    - Apply new bindings to viewmodel.
+
+When bindings are applied to the viewmodel
+    - set: this = self
+    - add search btn by accessing the dom.
+    - get value of textinput and store in var.
+    - launch searchAddress()
+
+*/
