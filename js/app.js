@@ -105,12 +105,12 @@ function ViewModel() {
     self.placesService = service;
     self.filter = ko.observable('');
     self.currentLocation = '';
+    self.foursquareData = [];
     self.filteredMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
     self.placesNearby = ko.observableArray([]);
     self.locationsDisplayed = ko.computed(function () {
         // This does not belong here, this is the computed list displayed when filtering places.
-        var foursquareData = ajaxRequest(self.placesNearby());
 
         var filter = self.filter().toLowerCase();
         if (!filter) {
@@ -247,6 +247,8 @@ function ViewModel() {
                 self.placesNearby(placesNearbyHolder);
                 self.addListListeners();
                 showMarkers(self.markers(), self.googlemap);
+                foursquareData = ajaxRequest(self.placesNearby());
+
             } else {
                 console.log(status);
                 return null;
@@ -373,12 +375,11 @@ function showMarkers(markers, map) {
 var ip = 0;
 function ajaxRequest(placesArray) {
     ip++;
-    console.log('ajax...'+ip)
+    console.log('ajax...'+ip);
 
     for (var i = 0; i < placesArray.length; i++) {
         var place = placesArray[i];
         var latlng = place.geometry.location.lat() + ", " + place.geometry.location.lng();
-
 
         var CLIENT_ID = "AEP4W55HIRZGMY4ZYAQODHXJDEA0XV542XTQRKT0FZNGICMD";
         var CLIENT_SECRET = "ZWFYSMH02Y1LS3TR1QYHX25MX3AREIZM4ADVEHIHKELH3CVW";
@@ -398,7 +399,11 @@ function ajaxRequest(placesArray) {
                     console.log('ajax data is empty');
                     return null;
                 }
+                console.log(data);
                 return data;
+            },
+            error: function (XHTMLobj, stringStatus, errorThrown ) {
+                console.log(stringStatus);
             }
         });
     }
