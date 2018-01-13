@@ -160,15 +160,15 @@ function ViewModel() {
         var suggestedBounds = data.response.suggestedBounds;
 
         // Returns an object w/ 30 suggested locations.
-        var suggestedLocations = data.groups[0].items;
+        var suggestedLocations = data.response.groups[0].items;
 
         for(var i=0; i < suggestedLocations.length; i++) {
             var place = suggestedLocations[i];
             // Individual place details.
             var description = place.reasons.items[0].summary;
             var phone = place.venue.contact.formattedPhone;
-            var address = place.location.addess;
-            var photos = place.photos;
+            var address = place.venue.location.address;
+            var photos = place.venue.photos;
         }
     };
 
