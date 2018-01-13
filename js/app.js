@@ -22,23 +22,24 @@ document.onreadystatechange = function () {
                 toggleSidePanel();
             }
         });
+
         // Wait for the map to be ready so it loads into the correct size element.
         while (mapInitReady === false) {
 
         }
+        // Initialize the googlemap & the knockout binding.
         initMap();
+        ko.applyBindings(new ViewModel());
     }
 };
 // So when the window resizes the ui refreshes.
 window.onresize = function () {
     appContainer.style.height = window.innerHeight - (header.offsetHeight + footer.offsetHeight) + "px";
     aside.style.height = window.innerHeight - header.offsetHeight + "px";
-}
+};
 // Global vars
-var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow, initNearbyLocs;
-var drawerToggled = false,
-    mapInitReady = false;
-
+var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow;
+var drawerToggled = false, mapInitReady = false;
 
 function makeMarkerIcon(markerColor) {
     var markerImage = new google.maps.MarkerImage(
@@ -67,7 +68,7 @@ function hideMarkers(markers) {
 // mapInitReady = true;
 
 function initMap() {
-    console.log('mapping...')
+    console.log('map init...')
     map = new google.maps.Map(document.getElementById('map'), {
         center: {
             lat: 53.350140,
@@ -91,8 +92,6 @@ function initMap() {
         toggleSidePanel();
         drawerToggled = true;
     }
-    ko.applyBindings(new ViewModel());
-
 }
 
 function setState() {
@@ -100,12 +99,18 @@ function setState() {
 }
 
 function ViewModel() {
+    console.log("ViewModel init...");
     var self = this;
+    self.searchHistory = ko.observableArray([]);
     self.googlemap = map;
     self.placesService = service;
+    // self.filter is binded to an input on index.html, type = string.
     self.filter = ko.observable('');
-    self.currentLocation = '';
-    self.foursquareData = [];
+    // self.currentLoc is the current location searched for in text form initially, type = string .
+    self.currentLoc = '';
+    // initializing an empty object for the api data.
+    self.foursquareData = {};
+    // An observable array of makrers after filtering.
     self.filteredMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
     self.placesNearby = ko.observableArray([]);
@@ -116,7 +121,7 @@ function ViewModel() {
         if (!filter) {
             return self.placesNearby();
         } else {
-            self.filteredMarkers([]);
+            self.filteredMarkers([])
             return ko.utils.arrayFilter(self.placesNearby(), function (place) {
                 // Check if the letters up to the letter so far match or if the word is contained in the string
                 var placeStr = (place.name.slice(0, filter.length).toLowerCase());
@@ -137,18 +142,39 @@ function ViewModel() {
         }
     });
 
-    //Add a searchButton var
-    var searchBtnElem = document.getElementById('search-btn');
+    self.initialize = function () {
+        console.log("init program...");
+        // Search for area, returning lat lng.
+        searchArea(self.currentLoc);
+    };
+    // Takes a formatted latlng position.
+    self.runApp = function (latlng) {
+        // Pass that lat lng into foursquare api.
+        var foursquareData = ajaxRequest(latlng);
+    };
+    // Receives Foursquare api data if there were no errors.
+    self.apiDataHandler = function (data) {
+        // String of the location of the header.
+        var searchedLoc = data.response.headerLocation;
+        // Returns an object w/ NorthEast LatLng & SouthWest LatLng.
+        var suggestedBounds = data.response.suggestedBounds;
 
-    //Add a searchButton event listener that searches the area.
-    searchBtnElem.addEventListener('click', function () {
-        // Get the val from the searchbox.
-        var address = document.getElementById('neighbourhood-search').value;
-        searchArea(address);
-    });
+        // Returns an object w/ 30 suggested locations.
+        var suggestedLocations = data.groups[0].items;
+
+        for(var i=0; i < suggestedLocations.length; i++) {
+            var place = suggestedLocations[i];
+            // Individual place details.
+            var description = place.reasons.items[0].summary;
+            var phone = place.venue.contact.formattedPhone;
+            var address = place.location.addess;
+            var photos = place.photos;
+        }
+    };
 
 
     function searchArea(address) {
+        self.searchHistory.push(address);
         // Clear previous search
         self.markers([]);
         if (address === '') {
@@ -166,26 +192,13 @@ function ViewModel() {
                         // If the callback function is called with no errors.
                         if (status === "OK") {
                             // Set variable loc to the latlong of the entered location & center the map on it.
-                            var loc = results[0].geometry.location;
-
-                            // Set the bounds of the map to the location also.
-                            var bounds = new google.maps.LatLngBounds();
-                            bounds.extend(loc);
-                            self.googlemap.setCenter(loc);
-                            self.googlemap.fitBounds(bounds);
-
-                            // Add a marker at the location
-                            var marker = new google.maps.Marker({
-                                map: self.googlemap,
-                                position: loc,
-                                icon: defaultIcon,
-                            });
-                            self.currentLocation = loc;
                             if (drawerToggled == false) {
                                 toggleSidePanel();
                                 drawerToggled = true;
                             }
-                            getNearbyPlaces();
+                            var lat = (results[0].geometry.location.lat());
+                            var lng = (results[0].geometry.location.lng());
+                            self.runApp(lat +"," +lng);
 
                         } else {
                             console.log(status);
@@ -205,7 +218,7 @@ function ViewModel() {
         var markersHolder = [];
 
         service.nearbySearch({
-            location: self.currentLocation,
+            location: self.currentLoc,
             radius: 500,
         }, function (results, status) {
             if (status === "OK") {
@@ -305,12 +318,40 @@ function ViewModel() {
         } else {
             marker.setAnimation(null);
         }
-    }
-
-    self.initialize = function () {
-        searchArea('dublin');
     };
-    self.initialize();
+    function ajaxRequest(latlng) {
+        ip++;
+        console.log('ajax ran '+ip + ' time.');
+
+        var CLIENT_ID = "AEP4W55HIRZGMY4ZYAQODHXJDEA0XV542XTQRKT0FZNGICMD";
+        var CLIENT_SECRET = "ZWFYSMH02Y1LS3TR1QYHX25MX3AREIZM4ADVEHIHKELH3CVW";
+        var remoteUrlWithOrigin = "https://api.foursquare.com/v2/venues/explore?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&ll=" + latlng + "&v=20180112";
+        console.log(remoteUrlWithOrigin);
+        // Using jQuery
+        jQuery.ajax({
+            url: remoteUrlWithOrigin,
+
+            //because of cross-orginig error that is why jsonp
+            dataType: 'jsonp',
+            type: 'GET',
+            //which function to call when all is succeseed
+            success: function (data, status) {
+                if(data.meta.code !== 200){
+                    console.log(data.meta.errorType);
+                    console.log(data.meta.errorDetail);
+                }
+                // Check if the api returns an empty object, if so return null.
+                if(isEmpty(data.response)){
+                    console.log('ajax data is empty');
+                    return null;
+                }
+                self.apiDataHandler(data);
+            },
+            error: function (XHTMLobj, stringStatus, errorThrown ) {
+                console.log(stringStatus);
+            }
+        });
+    }
 }
 
 // Takes an array of markers and sets their map to null hiding them from the screen.
@@ -373,41 +414,7 @@ function showMarkers(markers, map) {
     map.fitBounds(bounds)
 }
 var ip = 0;
-function ajaxRequest(placesArray) {
-    ip++;
-    console.log('ajax...'+ip);
 
-    for (var i = 0; i < placesArray.length; i++) {
-        var place = placesArray[i];
-        var latlng = place.geometry.location.lat() + ", " + place.geometry.location.lng();
-
-        var CLIENT_ID = "AEP4W55HIRZGMY4ZYAQODHXJDEA0XV542XTQRKT0FZNGICMD";
-        var CLIENT_SECRET = "ZWFYSMH02Y1LS3TR1QYHX25MX3AREIZM4ADVEHIHKELH3CVW";
-
-        var remoteUrlWithOrigin = "https://api.foursquare.com/v2/venues/search?ll=" + latlng + "&client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&v=20171006";
-        // Using jQuery
-        jQuery.ajax({
-            url: remoteUrlWithOrigin,
-
-            //because of cross-orginig error that is why jsonp
-            dataType: 'jsonp',
-            type: 'GET',
-            //which function to call when all is succeseed
-            success: function (data, status) {
-                // createMarker(place, data);
-                if(isEmpty(data.response)){
-                    console.log('ajax data is empty');
-                    return null;
-                }
-                console.log(data);
-                return data;
-            },
-            error: function (XHTMLobj, stringStatus, errorThrown ) {
-                console.log(stringStatus);
-            }
-        });
-    }
-}
 function isEmpty(obj) {
     for(var prop in obj) {
         if(obj.hasOwnProperty(prop)){
@@ -445,4 +452,12 @@ When bindings are applied to the viewmodel
     - get value of textinput and store in var.
     - launch searchAddress()
 
+*/
+
+
+
+/* Api version
+ - Receive nearby venues w/ photos rating etc.
+ - Create markers and animate these.
+ - Give ability to filter these.
 */

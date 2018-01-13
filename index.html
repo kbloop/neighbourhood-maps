@@ -16,8 +16,8 @@
             <button id="menu-toggle">
                 ☰
             </button>
-            <input id="neighbourhood-search"  type="text"  placeholder="ex: Brooklyn, N.Y.C.">
-            <button id="search-btn">Go!</button>
+            <input id="neighbourhood-search"  type="text" data-bind="value: currentLoc"  placeholder="ex: Brooklyn, N.Y.C.">
+            <button id="search-btn" data-bind="click: initialize" >Go!</button>
         </nav>
     </header>
     <section id="app-container">
