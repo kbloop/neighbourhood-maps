@@ -121,7 +121,7 @@ function ViewModel() {
         if (!filter) {
             return self.placesNearby();
         } else {
-            self.filteredMarkers([])
+            self.filteredMarkers([]);
             return ko.utils.arrayFilter(self.placesNearby(), function (place) {
                 // Check if the letters up to the letter so far match or if the word is contained in the string
                 var placeStr = (place.name.slice(0, filter.length).toLowerCase());
@@ -145,7 +145,7 @@ function ViewModel() {
     self.initialize = function () {
         console.log("init program...");
         // Search for area, returning lat lng.
-        searchArea(self.currentLoc);
+        geoCode(self.currentLoc);
     };
     // Takes a formatted latlng position.
     self.runApp = function (latlng) {
@@ -154,6 +154,8 @@ function ViewModel() {
     };
     // Receives Foursquare api data if there were no errors.
     self.apiDataHandler = function (data) {
+        this.placesNearby([]);
+        var placesHolder = [];
         // String of the location of the header.
         var searchedLoc = data.response.headerLocation;
         // Returns an object w/ NorthEast LatLng & SouthWest LatLng.
@@ -165,17 +167,27 @@ function ViewModel() {
         for(var i=0; i < suggestedLocations.length; i++) {
             var place = suggestedLocations[i];
             // Individual place details.
+            var name = place.venue.name;
             var description = place.reasons.items[0].summary;
             var phone = place.venue.contact.formattedPhone;
-            var address = place.venue.location.address;
+            var address = place.venue.location.formattedAddress;
+            var lat = place.venue.location.lat;
+            var lng = place.venue.location.lng;
             var photos = place.venue.photos;
+            var rating = place.venue.rating;
+            var ratingHex = place.venue.ratingColor;
+
+            place = new Place(name, description, phone, address, lat, lng, photos, rating, ratingHex);
+            placesHolder.push(place);
         }
+        this.placesNearby(placesHolder);
+        displayMarkers(this.placesNearby);
     };
 
 
-    function searchArea(address) {
+    function geoCode(address) {
         self.searchHistory.push(address);
-        // Clear previous search
+        // Clear previous search markers.
         self.markers([]);
         if (address === '') {
             // If input is empty.
@@ -209,10 +221,11 @@ function ViewModel() {
 
         }
     }
-
+    // No longer called by anything as the nearby places api is replaced by the foursquare api and the apiDataHandler Function.
     function getNearbyPlaces() {
+        console.log("Getting nearby places ©....");
         // Empty the array of previous data.
-        // self.placesNearby([]);
+        self.placesNearby([]);
 
         var placesNearbyHolder = [];
         var markersHolder = [];
@@ -404,6 +417,10 @@ function createMarker(place, apiData) {
     }
 }
 
+function displayMarkers(places) {
+
+ }
+
 function showMarkers(markers, map) {
     var bounds = new google.maps.LatLngBounds();
     for (var i = 0; i < markers.length; i++) {
@@ -424,6 +441,17 @@ function isEmpty(obj) {
     return JSON.stringify(obj) === JSON.stringify({});
 }
 
+var Place = function (name, description, phone, address, lat, lng, photos, rating, ratingHex) {
+    this.name = name;
+    this.description  = description ? description : "No description available.";
+    this.phone = phone ? phone : "No phone available";
+    this.photos = photos.count ? photos : "No photos available.";
+    this.address = address;
+    this.lat = lat;
+    this.lng = lng;
+    this.rating = rating;
+    this.ratingHex = ratingHex;
+};
 // WHEN THE PLACE IS CLICKED FIND THE API INFO ABOUT THE PLACE
 
 
