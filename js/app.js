@@ -38,7 +38,7 @@ window.onresize = function () {
     aside.style.height = window.innerHeight - header.offsetHeight + "px";
 };
 // Global vars
-var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow;
+var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow, bounds;
 var drawerToggled = false, mapInitReady = false;
 
 function makeMarkerIcon(markerColor) {
@@ -66,7 +66,6 @@ function hideMarkers(markers) {
 }
 
 function showMarkers(markers) {
-    var bounds = new google.maps.LatLngBounds();
     for (var i = 0; i < markers.length; i++) {
         markers[i].setMap(map);
         bounds.extend(markers[i].position);
@@ -77,7 +76,7 @@ function showMarkers(markers) {
 // mapInitReady = true;
 
 function initMap() {
-    console.log('map init...')
+    console.log('map init...');
     map = new google.maps.Map(document.getElementById('map'), {
         center: {
             lat: 53.350140,
@@ -234,22 +233,21 @@ function ViewModel() {
 
     self.addListListeners = function () {
         var listItemElem = document.getElementsByClassName("list-item");
+        var displayFunc = (function () {
+        return function () {
+            self.displayInfoWindow(ko.dataFor(this));
+            };
+        });
+        var animationFunc = (function () {
+            return function () {
+                self.toggleAnimation(ko.dataFor(this));
+            };
+        });
         for (var i = 0; i < listItemElem.length; i++) {
-            listItemElem[i].addEventListener('click', (function () {
-                return function () {
-                    self.displayInfoWindow(ko.dataFor(this));
-                }
-            }(i)));
-            listItemElem[i].addEventListener('mouseover', (function (numcopy) {
-                return function () {
-                    self.toggleAnimation(ko.dataFor(this));
-                }
-            }(i)));
-            listItemElem[i].addEventListener('mouseout', (function (numcopy) {
-                return function () {
-                    self.toggleAnimation(ko.dataFor(this));
-                }
-            }(i)));
+
+            listItemElem[i].addEventListener('click', displayFunc());
+            listItemElem[i].addEventListener('mouseover', animationFunc());
+            listItemElem[i].addEventListener('mouseout', animationFunc());
         }
     };
 
@@ -308,10 +306,25 @@ function ViewModel() {
     // Takes an array of Place objects and creates a google.maps.Marker for each one.
     // It then appends it to the object at Place.marker.
     function createMarker(PlacesArray) {
-        console.log("Creating markers...")
+        console.log("Creating markers...");
         self.markers([]);
-        var bounds = new google.maps.LatLngBounds();
+        bounds = new google.maps.LatLngBounds();
         var markersTEMP = [];
+
+        var placeFunc = function (result) {
+            return function () {
+                // TODO: Add some placeholder image for markers with no photos.
+                var url = result.photos  ? result.photos : " ";
+
+                largeInfoWindow.setOptions({
+                    position: result.latlng,
+                    map: map,
+                    content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p>"+result.phone+"</div>"
+                });
+                largeInfoWindow.open(map, result.marker);
+            };
+        };
+
         for(var i = 0; i < PlacesArray.length; i++) {
             var place = PlacesArray[i];
 
@@ -321,19 +334,7 @@ function ViewModel() {
                 title: place.name
             });
             // Add a marker click event that will open a info window
-            place.marker.addListener('click', function (result) {
-                return function () {
-                    // TODO: Add some placeholder image for markers with no photos.
-                    var url = result.photos  ? result.photos : " ";
-
-                    largeInfoWindow.setOptions({
-                        position: result.latlng,
-                        map: map,
-                        content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p>"+result.phone+"</div>"
-                    });
-                    largeInfoWindow.open(map, result.marker);
-                };
-            }(place));
+            place.marker.addListener('click', placeFunc(place));
             // Fit the bounds of the map.
             bounds.extend(place.latlng);
             markersTEMP.push(place.marker);
