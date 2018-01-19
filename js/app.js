@@ -66,9 +66,12 @@ function hideMarkers(markers) {
 }
 
 function showMarkers(markers) {
+    var bounds = new google.maps.LatLngBounds();
     for (var i = 0; i < markers.length; i++) {
         markers[i].setMap(map);
+        bounds.extend(markers[i].position);
     }
+    map.fitBounds(bounds);
 }
 // This will break everything
 // mapInitReady = true;
@@ -271,8 +274,7 @@ function ViewModel() {
     };
 
     function ajaxRequest(latlng) {
-        ip++;
-        console.log('ajax ran '+ip + ' time.');
+        console.log('ajax running...');
 
         var CLIENT_ID = "AEP4W55HIRZGMY4ZYAQODHXJDEA0XV542XTQRKT0FZNGICMD";
         var CLIENT_SECRET = "ZWFYSMH02Y1LS3TR1QYHX25MX3AREIZM4ADVEHIHKELH3CVW";
@@ -340,8 +342,6 @@ function ViewModel() {
         map.fitBounds(bounds);
     }
 }
-
-var ip = 0;
 
 function isEmpty(obj) {
     for(var prop in obj) {
