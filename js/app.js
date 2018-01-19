@@ -64,6 +64,12 @@ function hideMarkers(markers) {
         markers[i].setMap(null);
     }
 }
+
+function showMarkers(markers) {
+    for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(map);
+    }
+}
 // This will break everything
 // mapInitReady = true;
 
@@ -115,8 +121,6 @@ function ViewModel() {
     self.markers = ko.observableArray([]);
     self.placesNearby = ko.observableArray([]);
     self.locationsDisplayed = ko.computed(function () {
-        // This does not belong here, this is the computed list displayed when filtering places.
-
         var filter = self.filter().toLowerCase();
         if (!filter) {
             return self.placesNearby();
@@ -130,12 +134,10 @@ function ViewModel() {
 
                     // hide all markers.
                     hideMarkers(self.markers());
-                    // find the pos of place in the nearby places array.
-                    var pos = self.placesNearby().indexOf(place);
+
                     // set the marker at this position to display on the map.
-                    self.filteredMarkers().push(self.placesNearby()[pos].marker);
-                    showMarkers(self.filteredMarkers(), self.googlemap);
-                    // self.placesNearby()[pos].marker.setMap(self.googlemap);
+                    self.filteredMarkers().push(place.marker);
+                    showMarkers(self.filteredMarkers());
                     return place.name;
                 }
             });
@@ -143,6 +145,7 @@ function ViewModel() {
     });
 
     self.initialize = function () {
+        hideMarkers(self.markers());
         console.log("init program...");
         // Search for area, returning lat lng.
         geoCode(self.currentLoc);
@@ -154,7 +157,7 @@ function ViewModel() {
     };
     // Receives Foursquare api data if there were no errors.
     self.apiDataHandler = function (data) {
-        this.placesNearby([]);
+        self.placesNearby([]);
         var placesHolder = [];
         // String of the location of the header.
         var searchedLoc = data.response.headerLocation;
@@ -180,15 +183,19 @@ function ViewModel() {
             place = new Place(name, description, phone, address, lat, lng, photos, rating, ratingHex);
             placesHolder.push(place);
         }
+        // Array of places nearby, no markers.
         this.placesNearby(placesHolder);
-        displayMarkers(this.placesNearby);
+        // Appends a marker to each place object and displays it on the map.
+        createMarker(this.placesNearby());
+        // Add list listeners for hover effect.
+        self.addListListeners();
+        // TODO: fix filtering when undoing an option.
     };
 
 
     function geoCode(address) {
         self.searchHistory.push(address);
         // Clear previous search markers.
-        self.markers([]);
         if (address === '') {
             // If input is empty.
             alert("You must enter a search term.");
@@ -221,110 +228,40 @@ function ViewModel() {
 
         }
     }
-    // No longer called by anything as the nearby places api is replaced by the foursquare api and the apiDataHandler Function.
-    function getNearbyPlaces() {
-        console.log("Getting nearby places ©....");
-        // Empty the array of previous data.
-        self.placesNearby([]);
-
-        var placesNearbyHolder = [];
-        var markersHolder = [];
-
-        service.nearbySearch({
-            location: self.currentLoc,
-            radius: 500,
-        }, function (results, status) {
-            if (status === "OK") {
-                for (var i = 0; i < results.length; i++) {
-                    placesNearbyHolder.push(results[i]);
-                    var location = results[i].geometry.location;
-                    var name = results[i].geometry.name;
-                    // Check if the results returns photos, and if so set the photoUrl = url, else set it to nothing.
-                    var photoUrl = typeof results[i].geometry.photos !== "undefined" ? results[i].geometry.photos[i].getUrl({
-                        'maxWidth': 300,
-                        'maxHeight': 400
-                    }) : '';
-                    var marker = new google.maps.Marker({
-                        map: self.map,
-                        position: location,
-                    });
-                    var infoWindow = new google.maps.InfoWindow();
-
-                    // Add a marker click event that will open a info window
-                    marker.addListener('click', function (result) {
-                        return function () {
-
-                            var url = typeof result.photos !== "undefined" ? result.photos[0].getUrl({
-                                'maxWidth': 300,
-                                'maxHeight': 400
-                            }) : '';
-                            largeInfoWindow.setOptions({
-                                position: result.geometry.location,
-                                map: self.map,
-                                content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p></div>"
-                            });
-                            largeInfoWindow.open(map, self.markers()[i]);
-                        };
-                    }(results[i]));
-                    markersHolder.push(marker);
-                    placesNearbyHolder[i].marker = marker;
-                }
-                self.markers(markersHolder);
-                self.placesNearby(placesNearbyHolder);
-                self.addListListeners();
-                showMarkers(self.markers(), self.googlemap);
-                foursquareData = ajaxRequest(self.placesNearby());
-
-            } else {
-                console.log(status);
-                return null;
-            }
-        });
-    }
 
     self.addListListeners = function () {
         var listItemElem = document.getElementsByClassName("list-item");
         for (var i = 0; i < listItemElem.length; i++) {
-            listItemElem[i].addEventListener('click', (function (numcopy) {
+            listItemElem[i].addEventListener('click', (function () {
                 return function () {
-                    self.displayInfoWindow(ko.dataFor(this), numcopy);
+                    self.displayInfoWindow(ko.dataFor(this));
                 }
             }(i)));
             listItemElem[i].addEventListener('mouseover', (function (numcopy) {
                 return function () {
-                    self.toggleAnimation(numcopy);
-                    // self.changeMarker(numcopy);
-                    ko.dataFor(this).number = numcopy;
+                    self.toggleAnimation(ko.dataFor(this));
                 }
             }(i)));
             listItemElem[i].addEventListener('mouseout', (function (numcopy) {
                 return function () {
-                    self.toggleAnimation(numcopy);
-                    // self.changeMarker(numcopy);
-                    ko.dataFor(this).number = numcopy;
+                    self.toggleAnimation(ko.dataFor(this));
                 }
             }(i)));
         }
     };
 
-    self.displayInfoWindow = function (obj, pos) {
-        var marker = self.markers()[pos];
-        var url = typeof obj.photos !== "undefined" ? obj.photos[0].getUrl({
-            'maxWidth': 300,
-            'maxHeight': 400
-        }) : '';
+    self.displayInfoWindow = function (obj) {
+        var marker = obj.marker;
+        var url = obj.photos ? obj.photos : " ";
+
         largeInfoWindow.setOptions({
-            content: "<div><h3>" + obj.name + "</h3><img src=" + url + "><p></p></div>"
+            content: "<div><h3>" + obj.name + "</h3><img src=" + url + "><p></p>"+obj.phone+"</div>"
         });
         largeInfoWindow.open(map, marker);
     };
 
-    self.changeMarker = function (pos) {
-        var marker = self.markers()[pos];
-        marker.setIcon(highlightedIcon);
-    };
-    self.toggleAnimation = function (pos) {
-        var marker = self.markers()[pos];
+    self.toggleAnimation = function (obj) {
+        var marker = obj.marker;
         if (marker.getAnimation() == null) {
             marker.setAnimation(google.maps.Animation.BOUNCE);
             map.setCenter(marker.position);
@@ -332,6 +269,7 @@ function ViewModel() {
             marker.setAnimation(null);
         }
     };
+
     function ajaxRequest(latlng) {
         ip++;
         console.log('ajax ran '+ip + ' time.');
@@ -365,71 +303,44 @@ function ViewModel() {
             }
         });
     }
-}
+    // Takes an array of Place objects and creates a google.maps.Marker for each one.
+    // It then appends it to the object at Place.marker.
+    function createMarker(PlacesArray) {
+        console.log("Creating markers...")
+        self.markers([]);
+        var bounds = new google.maps.LatLngBounds();
+        var markersTEMP = [];
+        for(var i = 0; i < PlacesArray.length; i++) {
+            var place = PlacesArray[i];
 
-// Takes an array of markers and sets their map to null hiding them from the screen.
-function hideMarkers(markers) {
-    for (var i = 0; i < markers.length; i++) {
-        var marker = markers[i];
-        marker.setMap(null);
+            place.marker = new google.maps.Marker({
+                position: place.latlng,
+                map: map,
+                title: place.name
+            });
+            // Add a marker click event that will open a info window
+            place.marker.addListener('click', function (result) {
+                return function () {
+                    // TODO: Add some placeholder image for markers with no photos.
+                    var url = result.photos  ? result.photos : " ";
+
+                    largeInfoWindow.setOptions({
+                        position: result.latlng,
+                        map: map,
+                        content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p>"+result.phone+"</div>"
+                    });
+                    largeInfoWindow.open(map, result.marker);
+                };
+            }(place));
+            // Fit the bounds of the map.
+            bounds.extend(place.latlng);
+            markersTEMP.push(place.marker);
+        }
+        self.markers(markersTEMP);
+        map.fitBounds(bounds);
     }
 }
 
-function createMarker(place, apiData) {
-    var marker = place.marker;
-    if(apiData.response !== undefined ) {
-        console.log(isEmpty(apiData.response));
-
-
-        // Add a marker click event that will open a info window
-        marker.addListener('click', function (result) {
-            return function () {
-
-                var url = typeof result.photos !== "undefined" ? result.photos[0].getUrl({
-                    'maxWidth': 300,
-                    'maxHeight': 400
-                }) : '';
-                largeInfoWindow.setOptions({
-                    position: result.geometry.location,
-                    map: self.map,
-                    content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p>"+apiData.venues[0].contact.formattedPhone+"</div>"
-                });
-                largeInfoWindow.open(map, place.marker);
-            };
-        }(place));
-    } else {
-        // Add a marker click event that will open a info window
-        marker.addListener('click', function (result) {
-            return function () {
-
-                var url = typeof result.photos !== "undefined" ? result.photos[0].getUrl({
-                    'maxWidth': 300,
-                    'maxHeight': 400
-                }) : '';
-                largeInfoWindow.setOptions({
-                    position: result.geometry.location,
-                    map: self.map,
-                    content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p>No further information about this location</p></div>"
-                });
-                largeInfoWindow.open(map, place.marker);
-            };
-        }(place));
-    }
-}
-
-function displayMarkers(places) {
-
- }
-
-function showMarkers(markers, map) {
-    var bounds = new google.maps.LatLngBounds();
-    for (var i = 0; i < markers.length; i++) {
-        var marker = markers[i];
-        marker.setMap(map);
-        bounds.extend(marker.position);
-    }
-    map.fitBounds(bounds)
-}
 var ip = 0;
 
 function isEmpty(obj) {
@@ -444,18 +355,15 @@ function isEmpty(obj) {
 var Place = function (name, description, phone, address, lat, lng, photos, rating, ratingHex) {
     this.name = name;
     this.description  = description ? description : "No description available.";
-    this.phone = phone ? phone : "No phone available";
-    this.photos = photos.count ? photos : "No photos available.";
-    this.address = address;
+    this.phone = phone ? phone : "No phone available.";
+    this.photos = photos.count ? photos : false;
+    this.address = address ? address : "No address available.";
+    this.latlng = {lat: lat, lng: lng};
     this.lat = lat;
     this.lng = lng;
     this.rating = rating;
     this.ratingHex = ratingHex;
 };
-// WHEN THE PLACE IS CLICKED FIND THE API INFO ABOUT THE PLACE
-
-
-// HOW THE APP RUNS ATM, aka completely fooked.
 
 /*
 When doc is ready
