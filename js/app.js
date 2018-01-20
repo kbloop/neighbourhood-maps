@@ -96,7 +96,7 @@ function initMap() {
     service = new google.maps.places.PlacesService(map);
 
     // UI Initial state
-    if (drawerToggled == false) {
+    if (drawerToggled === false) {
         toggleSidePanel();
         drawerToggled = true;
     }
@@ -213,7 +213,7 @@ function ViewModel() {
                         // If the callback function is called with no errors.
                         if (status === "OK") {
                             // Set variable loc to the latlong of the entered location & center the map on it.
-                            if (drawerToggled == false) {
+                            if (drawerToggled === false) {
                                 toggleSidePanel();
                                 drawerToggled = true;
                             }
@@ -263,7 +263,7 @@ function ViewModel() {
 
     self.toggleAnimation = function (obj) {
         var marker = obj.marker;
-        if (marker.getAnimation() == null) {
+        if (marker.getAnimation() === null) {
             marker.setAnimation(google.maps.Animation.BOUNCE);
             map.setCenter(marker.position);
         } else {
