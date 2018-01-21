@@ -3,7 +3,6 @@ document.onreadystatechange = function () {
     if (document.readyState === "interactive") {}
 
     if (document.readyState === "complete") {
-        toggleSidePanel();
         // Set the ui of the app based on screen size.
         appContainer = document.getElementById('app-container');
         aside = document.getElementById('list-container');
@@ -39,7 +38,7 @@ window.onresize = function () {
 };
 // Global vars
 var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow, bounds;
-var drawerToggled = false, mapInitReady = false;
+var drawerToggled = true, mapInitReady = false;
 
 function makeMarkerIcon(markerColor) {
     var markerImage = new google.maps.MarkerImage(
@@ -53,10 +52,15 @@ function makeMarkerIcon(markerColor) {
 }
 
 function toggleSidePanel() {
+    console.log("Toggling");
     var aside = document.getElementById('list-container');
-    var map = document.getElementById('map');
+    var mapElem = document.getElementById('map');
     aside.classList.toggle('hidden-left');
-    map.classList.toggle('map-move-right');
+    mapElem.classList.toggle('map-move-right');
+    // Making the map responsive.
+    var center = map.getCenter();
+    google.maps.event.trigger(map, "resize");
+    map.setCenter(center);
 }
 // This function will loop through the listings and hide them all.
 function hideMarkers(markers) {
@@ -263,7 +267,7 @@ function ViewModel() {
 
     self.toggleAnimation = function (obj) {
         var marker = obj.marker;
-        if (marker.getAnimation() === null) {
+        if (marker.getAnimation() === undefined || marker.getAnimation() === null) {
             marker.setAnimation(google.maps.Animation.BOUNCE);
             map.setCenter(marker.position);
         } else {
@@ -342,6 +346,12 @@ function ViewModel() {
         self.markers(markersTEMP);
         map.fitBounds(bounds);
     }
+
+    (function (){
+        // Init the app with a value.
+        self.currentLoc = "Dublin";
+        self.initialize();
+    })();
 }
 
 function isEmpty(obj) {
@@ -357,7 +367,7 @@ var Place = function (name, description, phone, address, lat, lng, photos, ratin
     this.name = name;
     this.description  = description ? description : "No description available.";
     this.phone = phone ? phone : "No phone available.";
-    this.photos = photos.count ? photos : false;
+    this.photos = photos.count ? photos : "images/nophoto.svg";
     this.address = address ? address : "No address available.";
     this.latlng = {lat: lat, lng: lng};
     this.lat = lat;
