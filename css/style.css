@@ -9,6 +9,9 @@ A4B8C4 - wild blue = list bg
 * {
     box-sizing: border-box;
 }
+.hidden {
+    display: none;
+}
 input {
     background: #FCFAFA;
     border: none;

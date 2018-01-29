@@ -89,8 +89,6 @@ function showMarkers(markers) {
     }
     map.fitBounds(bounds);
 }
-// This will break everything
-// mapInitReady = true;
 
 function initMap() {
     console.log('map init...');
@@ -121,7 +119,6 @@ function setState() {
 }
 
 function ViewModel() {
-    console.log("ViewModel init...");
     var self = this;
     self.searchHistory = ko.observableArray([]);
     self.googlemap = map;
@@ -134,11 +131,14 @@ function ViewModel() {
     self.foursquareData = {};
     // An observable array of makrers after filtering.
     self.filteredMarkers = ko.observableArray([]);
-    self.markers = ko.observableArray([]);
+    self.markers = [];
     self.placesNearby = ko.observableArray([]);
     self.locationsDisplayed = ko.computed(function () {
         var filter = self.filter().toLowerCase();
         if (!filter) {
+            if(self.markers.length !== 0) {
+                showMarkers(self.markers);
+            }
             return self.placesNearby();
         } else {
             self.filteredMarkers([]);
@@ -146,23 +146,21 @@ function ViewModel() {
                 // Check if the letters up to the letter so far match or if the word is contained in the string
                 var placeStr = (place.name.slice(0, filter.length).toLowerCase());
                 if (filter === placeStr || (place.name.toLowerCase().indexOf(filter) >= 0)) {
-                    // If so return the matching places
-
-                    // hide all markers.
-                    hideMarkers(self.markers());
+                    // If so return the matching place
 
                     // set the marker at this position to display on the map.
                     self.filteredMarkers().push(place.marker);
                     showMarkers(self.filteredMarkers());
                     return place.name;
                 }
+                // It does not match the search term therefore hide it.
+                place.marker.setMap(null);
             });
         }
     });
 
     self.initialize = function () {
-        hideMarkers(self.markers());
-        console.log("init program...");
+        hideMarkers(self.markers);
         // Search for area, returning lat lng.
         geoCode(self.currentLoc);
     };
@@ -173,7 +171,8 @@ function ViewModel() {
     };
     // Receives Foursquare api data if there were no errors.
     self.apiDataHandler = function (data) {
-        self.placesNearby([]);
+
+        // self.placesNearby([]);
         var placesHolder = [];
         // String of the location of the header.
         var searchedLoc = data.response.headerLocation;
@@ -202,8 +201,10 @@ function ViewModel() {
         }
         // Array of places nearby, no markers.
         this.placesNearby(placesHolder);
+
         // Appends a marker to each place object and displays it on the map.
         createMarker(this.placesNearby());
+
         // Add list listeners for hover effect.
         // self.addListListeners();
         // TODO: fix filtering when undoing an option.
@@ -298,8 +299,7 @@ function ViewModel() {
     // Takes an array of Place objects and creates a google.maps.Marker for each one.
     // It then appends it to the object at Place.marker.
     function createMarker(PlacesArray) {
-        console.log("Creating markers...");
-        self.markers([]);
+        self.markers = [];
         bounds = new google.maps.LatLngBounds();
         var markersTEMP = [];
 
@@ -337,7 +337,7 @@ function ViewModel() {
             bounds.extend(place.latlng);
             markersTEMP.push(place.marker);
         }
-        self.markers(markersTEMP);
+        self.markers = markersTEMP;
         map.fitBounds(bounds);
     }
 
