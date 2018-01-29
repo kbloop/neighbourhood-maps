@@ -6,10 +6,14 @@ A4B8C4 - wild blue = list bg
 0CCA4A - accent = highlighter / active / focus
 */
 /* MOBILE FIRST STYLES */
+* {
+    box-sizing: border-box;
+}
 input {
     background: #FCFAFA;
     border: none;
     width: 55%;
+    padding: 0px;
     font-size: 37.5px;
     font-weight: 100;
     margin-left: 0px;
@@ -20,7 +24,37 @@ input.filter-input {
     margin-left: 0px;
     width: 100%;
     font-size: 1.25em;
-    padding: 5px 2px 5px 20px;
+}
+.hidden-left {
+    transform: translate(-110%,0);
+}
+
+.active {
+    color: #0CCA4A;
+}
+
+.map-move-right {
+    float: right;
+    width: 37%!important;
+}
+
+header {
+    background: #FCFAFA;
+    height: 50px;
+}
+
+button {
+    background: #FCFAFA;
+    border: none;
+    color: #6E8387;
+    font-size: 25px;
+    font-weight: 100;
+    height: 100%;
+    width: 20%;
+}
+
+body {
+    overflow: hidden;
 }
 
 aside {
@@ -32,13 +66,38 @@ aside {
     z-index: 1;
 }
 
+#map {
+    float: right;
+    height: 100%;
+    transition: all .2s;
+    width: 100%;
+}
+
+ul {
+    overflow-y: scroll;
+    height: 100%;
+    padding: 0px;
+}
+
 li {
-    border: 1px solid #FCFAFA;
+    border-top: 1px solid #FCFAFA;
+    border-bottom: 0px;
     font-family: roboto, sans-serif;
     font-size: 24px;
     text-align: center;
+    list-style: none;
     padding: 4%;
     width: 100%;
+}
+
+@media (min-width: 500px) and (orientation: landscape) {
+    aside {
+        width: 30%;
+    }
+
+    .map-move-right {
+        width: 69% !important;
+    }
 }
 
 /* Medium devices  768px and up*/
@@ -245,3 +304,4 @@ li {
         width: 80%!important;
     }
 }
+

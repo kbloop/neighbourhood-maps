@@ -7,9 +7,8 @@ document.onreadystatechange = function () {
         appContainer = document.getElementById('app-container');
         aside = document.getElementById('list-container');
         header = document.getElementById('header');
-        footer = document.getElementById('footer');
         // Set the app container to the height of the page leaving room for the header / footer.
-        appContainer.style.height = window.innerHeight - (header.offsetHeight + footer.offsetHeight) + "px";
+        appContainer.style.height = window.innerHeight - (header.offsetHeight) + "px";
         // Set the aside height to the height of the page
         var map = document.getElementById('map');
         aside.style.height = window.innerHeight - header.offsetHeight + "px";
@@ -33,12 +32,19 @@ document.onreadystatechange = function () {
 };
 // So when the window resizes the ui refreshes.
 window.onresize = function () {
-    appContainer.style.height = window.innerHeight - (header.offsetHeight + footer.offsetHeight) + "px";
+    appContainer.style.height = window.innerHeight - (header.offsetHeight) + "px";
     aside.style.height = window.innerHeight - header.offsetHeight + "px";
 };
 // Global vars
-var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, footer, largeInfoWindow, bounds;
+var map, service, defaultIcon, highlightedIcon, appContainer, aside, header, largeInfoWindow, bounds;
 var drawerToggled = true, mapInitReady = false;
+
+function loadError (oError) {
+    mapInitReady = true;
+    alert("Googlemaps has not loaded correctly, refresh the browser to try again.");
+    console.log("Googlemaps has not loaded correctly, refresh the browser to try again.");
+    // throw new URIError("The script " + oError.target.src + " is not available, try refreshing.");
+  }
 
 function makeMarkerIcon(markerColor) {
     var markerImage = new google.maps.MarkerImage(
@@ -57,15 +63,22 @@ function toggleSidePanel() {
     var mapElem = document.getElementById('map');
     aside.classList.toggle('hidden-left');
     mapElem.classList.toggle('map-move-right');
-    // Making the map responsive.
-    var center = map.getCenter();
-    google.maps.event.trigger(map, "resize");
-    map.setCenter(center);
+    var infoWindowTemp = largeInfoWindow;
+    largeInfoWindow.close();
+    // Wait .2 secs for the aside animation.
+    setTimeout(function(){
+        // Making the map responsive.
+        var center = map.getCenter();
+        google.maps.event.trigger(map, "resize");
+        map.setCenter(center);
+        largeInfoWindow = infoWindowTemp;
+        largeInfoWindow.setMap(map);
+    }, 200);
 }
 // This function will loop through the listings and hide them all.
 function hideMarkers(markers) {
     for (var i = 0; i < markers.length; i++) {
-        markers[i].setMap(null);
+        markers[i].setVisible(false);
     }
 }
 
@@ -91,9 +104,6 @@ function initMap() {
 
     // Style the markers a bit. This will be our listing marker icon.
     defaultIcon = makeMarkerIcon('0091ff');
-    // Create a "highlighted location" marker color for when the user
-    // mouses over the marker.
-    // highlightedIcon = makeMarkerIcon('FFFF24');
 
     // Create one instance of an infowindow to only allow one open on screen at a time.
     largeInfoWindow = new google.maps.InfoWindow();
@@ -182,6 +192,7 @@ function ViewModel() {
             var address = place.venue.location.formattedAddress;
             var lat = place.venue.location.lat;
             var lng = place.venue.location.lng;
+            // Returns nothing.
             var photos = place.venue.photos;
             var rating = place.venue.rating;
             var ratingHex = place.venue.ratingColor;
@@ -194,7 +205,7 @@ function ViewModel() {
         // Appends a marker to each place object and displays it on the map.
         createMarker(this.placesNearby());
         // Add list listeners for hover effect.
-        self.addListListeners();
+        // self.addListListeners();
         // TODO: fix filtering when undoing an option.
     };
 
@@ -235,26 +246,6 @@ function ViewModel() {
         }
     }
 
-    self.addListListeners = function () {
-        var listItemElem = document.getElementsByClassName("list-item");
-        var displayFunc = (function () {
-        return function () {
-            self.displayInfoWindow(ko.dataFor(this));
-            };
-        });
-        var animationFunc = (function () {
-            return function () {
-                self.toggleAnimation(ko.dataFor(this));
-            };
-        });
-        for (var i = 0; i < listItemElem.length; i++) {
-
-            listItemElem[i].addEventListener('click', displayFunc());
-            listItemElem[i].addEventListener('mouseover', animationFunc());
-            listItemElem[i].addEventListener('mouseout', animationFunc());
-        }
-    };
-
     self.displayInfoWindow = function (obj) {
         var marker = obj.marker;
         var url = obj.photos ? obj.photos : " ";
@@ -269,19 +260,16 @@ function ViewModel() {
         var marker = obj.marker;
         if (marker.getAnimation() === undefined || marker.getAnimation() === null) {
             marker.setAnimation(google.maps.Animation.BOUNCE);
-            map.setCenter(marker.position);
+            // map.setCenter(marker.position);
         } else {
             marker.setAnimation(null);
         }
     };
 
     function ajaxRequest(latlng) {
-        console.log('ajax running...');
-
         var CLIENT_ID = "AEP4W55HIRZGMY4ZYAQODHXJDEA0XV542XTQRKT0FZNGICMD";
         var CLIENT_SECRET = "ZWFYSMH02Y1LS3TR1QYHX25MX3AREIZM4ADVEHIHKELH3CVW";
-        var remoteUrlWithOrigin = "https://api.foursquare.com/v2/venues/explore?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&ll=" + latlng + "&v=20180112";
-        console.log(remoteUrlWithOrigin);
+        var remoteUrlWithOrigin = "https://api.foursquare.com/v2/venues/explore?client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET + "&ll=" + latlng + "&v=20180112&venuePhotos=1";
         // Using jQuery
         jQuery.ajax({
             url: remoteUrlWithOrigin,
@@ -303,7 +291,7 @@ function ViewModel() {
                 self.apiDataHandler(data);
             },
             error: function (XHTMLobj, stringStatus, errorThrown ) {
-                console.log(stringStatus);
+                alert(stringStatus);
             }
         });
     }
@@ -319,7 +307,9 @@ function ViewModel() {
             return function () {
                 // TODO: Add some placeholder image for markers with no photos.
                 var url = result.photos  ? result.photos : " ";
-
+                clickedIcon = makeMarkerIcon('cccccc');
+                result.marker.setIcon(clickedIcon);
+                console.log(result.marker.icon);
                 largeInfoWindow.setOptions({
                     position: result.latlng,
                     map: map,
@@ -367,7 +357,7 @@ var Place = function (name, description, phone, address, lat, lng, photos, ratin
     this.name = name;
     this.description  = description ? description : "No description available.";
     this.phone = phone ? phone : "No phone available.";
-    this.photos = photos.count ? photos : "images/nophoto.svg";
+    this.photos = photos.count ? photos.groups[0].items[0].prefix + "200x300" + photos.groups[0].items[0].suffix : "images/nophoto.svg";
     this.address = address ? address : "No address available.";
     this.latlng = {lat: lat, lng: lng};
     this.lat = lat;
