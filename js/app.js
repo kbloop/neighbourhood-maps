@@ -78,7 +78,7 @@ function toggleSidePanel() {
 // This function will loop through the listings and hide them all.
 function hideMarkers(markers) {
     for (var i = 0; i < markers.length; i++) {
-        markers[i].setVisible(false);
+        markers[i].setMap(null);
     }
 }
 
@@ -307,15 +307,19 @@ function ViewModel() {
             return function () {
                 // TODO: Add some placeholder image for markers with no photos.
                 var url = result.photos  ? result.photos : " ";
-                clickedIcon = makeMarkerIcon('cccccc');
-                result.marker.setIcon(clickedIcon);
-                console.log(result.marker.icon);
+                // clickedIcon = makeMarkerIcon('cccccc');
+                // result.marker.setIcon(clickedIcon);
+
                 largeInfoWindow.setOptions({
                     position: result.latlng,
                     map: map,
                     content: "<div><h3>" + result.name + "</h3><img src=" + url + "><p></p>"+result.phone+"</div>"
                 });
                 largeInfoWindow.open(map, result.marker);
+                setTimeout(function(){
+                    self.toggleAnimation(result);
+                }, 1500);
+                self.toggleAnimation(result);
             };
         };
 
