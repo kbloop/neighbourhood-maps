@@ -9,11 +9,11 @@ Unzip the file and open index.html in the webbrowser, bingo you're running.
 ## Built With
 
 * [KnockoutJS](http://knockoutjs.com/documentation/introduction.html/) - The web framework used.
-* [Foursquare Api](https://developer.foursquare.com/docs) - External Api.
-
+* [Foursquare Api](https://developer.foursquare.com/docs) - External Api used to get localised information.
+* [GoogleMaps Api](https://developers.google.com/maps/documentation/) - The map api used.
 ## Authors
 
-* **Kevin Brennan** - *Initial work* - [Kbloop](https://github.com/Kbloop)
+* **Kevin Brennan** - [Kbloop](https://www.kevvin.me)
 
 ## License
 
